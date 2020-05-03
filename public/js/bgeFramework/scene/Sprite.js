@@ -13,7 +13,7 @@ class Sprite extends Phaser.GameObjects.Sprite {
 		scene.textures.on('addtexture', () => {
 			this.setTexture(opts.image);
 
-			console.log(scene.textures.get(opts.image))
+			console.log(opts.image);
 		});
 		
 		this.setInteractive();

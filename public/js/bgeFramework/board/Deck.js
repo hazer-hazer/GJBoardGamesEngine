@@ -1,4 +1,5 @@
 import Card from './Card.js'
+import CardPlace from './CardPlace.js'
 
 class Deck extends Phaser.GameObjects.Container {
 	cards = [];
@@ -7,7 +8,9 @@ class Deck extends Phaser.GameObjects.Container {
 
 	max_size = 52;
 
-	update_counter = false;
+	belong_to = null;
+
+	border_color = 0xffffff;
 
 	constructor(scene, x, y, opts = {}){
 		super(scene, x, y);
@@ -16,21 +19,51 @@ class Deck extends Phaser.GameObjects.Container {
 
 		this.setPosition(x, y);
 
-		this.max_size = opts.max_size || this.max_size;
-
 		this.setSize(100, 140);
-		this.setInteractive();
-	
-		let graphics = scene.add.graphics();
-		graphics.lineStyle(2, this.border_color, 1);
-		graphics.strokeRoundedRect(this.x - this.width / 2, this.y - this.height / 2, this.width, this.height, 10);
 
 		this.counter = scene.add.text(this.x - this.width / 2 + 10, this.y - this.height / 2 - 15, this.size(), { font: 'sans-serif' });
+
+		this.graphics = scene.add.graphics();
+
+		this.drawBorder();
+
+		this.max_size = opts.max_size || this.max_size;
+
+		// Events
+		this.on('pointerover', pointer => {
+			if(this.available()){
+				this.border_color = 0x00ddaa;
+				scene.data.set('dragEndCardPlace', this);
+			}else{
+				this.border_color = 0xf25959;
+			}
+			this.drawBorder();
+		});
+
+		this.on('pointerout', pointer => {
+			this.border_color = 0xffffff;
+			this.drawBorder();
+			scene.data.reset('dragEndCardPlace');
+		});
 	}
 
-	preUpdate(time, delta){
-		if(this.update_counter){
-			this.counter.setText(this.size());
+	available(){
+		return this.notFull();
+	}
+
+	drawBorder(){
+		// console.log(this.parent)
+		// this.graphics.lineStyle(2, this.border_color, 1);
+		// this.graphics.strokeRoundedRect(this.x - this.width / 2, this.y - this.height / 2, this.width, this.height, 10);
+	}
+
+	update_counter(){
+		this.counter.setText(this.size());
+	}
+
+	setBelongTo(place){
+		if(place instanceof CardPlace){
+			this.belong_to = place;
 		}
 	}
 
@@ -46,7 +79,7 @@ class Deck extends Phaser.GameObjects.Container {
 		this.add(card);
 		this.cards.push(card);
 
-		this.update_counter = true;
+		this.update_counter();
 		
 		return card;
 	}
@@ -60,7 +93,7 @@ class Deck extends Phaser.GameObjects.Container {
 			return null;
 		}
 	
-		this.update_counter = true;
+		this.update_counter();
 
 		// Change if need always get array of card and in case of count=1 too
 		if(count === 1){
@@ -81,12 +114,16 @@ class Deck extends Phaser.GameObjects.Container {
 		return this.size() < this.max_size;
 	}
 
-	moveCardTo(deck){
-		if(!(deck instanceof Deck)){
-			throw "Cannot move card to Object not type of Deck";
+	moveCardTo(placeable){
+		if(placeable instanceof Deck){
+			placeable.push(this.take());
+		}else if(placeable instanceof CardPlace){
+			placeable.add(this.take());
+		}else{
+			throw "Cannot move card to Object not type of Deck or CardPlace";
 		}
-		this.update_counter = true;
-		deck.push(this.take());
+
+		this.update_counter();
 	}
 }
 
